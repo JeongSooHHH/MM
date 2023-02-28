@@ -3,6 +3,7 @@ const express = require("express");
 const { MongoClient } = require("mongodb");
 const bodyParser = require("body-parser");
 const mongodb = require("mongodb");
+const moment = require("moment");
 
 const app = express();
 const port = 3000;
@@ -22,6 +23,36 @@ client.connect((err) => {
 
   const database = client.db("mathMedic");
   const collection = database.collection("reviews");
+
+  client.connect(async (err) => {
+    if (err) {
+      console.error(err);
+      process.exit(1);
+    }
+
+    const db = client.db("mathMedic");
+    const collection = db.collection("reviews");
+
+    const review = {
+      adminId: "admin123",
+      id: 1,
+      code: "1234",
+      provider: "ACME",
+      date: {
+        created_at: moment().format("YYYY-MM-DD hh:mm:ss"),
+        updated_at: moment().format("YYYY-MM-DD hh:mm:ss"),
+      },
+      problem: "Some problem",
+      solution: "Some solution",
+      search_problem: "some problem",
+      search_solution: "some solution",
+      answer: "Some answer",
+      score: "Some score",
+    };
+
+    const result = await collection.insertOne(review);
+    console.log(result);
+  });
 
   // Create a document
   app.post("/documents", (req, res) => {
