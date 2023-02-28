@@ -1,58 +1,89 @@
-// const MongoClient = require("mongodb").MongoClient;
-// const url = "mongodb://localhost:27017/test";
+// const { MongoClient } = require("mongodb");
+// const { reviewSchema } = require("../utils/schema");
 
-// let db;
-
-// MongoClient.connect(url, function (err, client) {
-//   if (err) throw err;
-//   db = client.db("test");
+// const uri =
+//   "mongodb+srv://space2577:ghkdwjdtn@csm.jifgqtn.mongodb.net/mathMedic";
+// const client = new MongoClient(uri, {
+//   useNewUrlParser: true,
+//   useUnifiedTopology: true,
 // });
 
-// const collection = db.collection("test");
+// const databaseName = "mathMedic";
+// const collectionName = "reviews";
 
-// class UserDAO {
-//   create(data, callback) {
-//     collection.insertOne(data, (err, result) => {
-//       if (err) return callback(err, null);
-//       callback(null, result.ops[0]);
-//     });
-//   }
+// client.connect(async (err) => {
+//   if (err) console.error(err);
+//   console.log("Connected to MongoDB");
 
-//   all(callback) {
-//     collection.find().toArray((err, docs) => {
-//       if (err) return callback(err, null);
-//       callback(null, docs);
-//     });
-//   }
+//   const database = client.db(databaseName);
+//   const collection = database.collection(collectionName);
 
-//   findById(id, callback) {
-//     const query = { _id: ObjectId(id) };
-//     collection.findOne(query, (err, doc) => {
-//       if (err) return callback(err, null);
-//       callback(null, doc);
-//     });
-//   }
+//   const addReview = async (adminId, pdfId, review, rating) => {
+//     try {
+//       const reviews = await collection.insertOne({
+//         adminId: adminId,
+//         pdfId: pdfId,
+//         review: review,
+//         rating: rating,
+//       });
+//       return reviews.ops[0];
+//     } catch (err) {
+//       console.log(err);
+//     }
+//   };
 
-//   update(data, callback) {
-//     const query = { _id: ObjectId(data._id) };
-//     delete data._id;
-//     collection.replaceOne(query, data, (err, result) => {
-//       if (err) return callback(err, null);
-//       callback(null, result);
-//     });
-//   }
+//   const getReview = async (pdfId) => {
+//     console.log(pdfId, "====5555");
+//     try {
+//       const getReviewsBypdfId = await collection
+//         .findOne({
+//           pdfId: pdfId,
+//           // adminId: adminId,
+//         })
+//         .toArray();
+//       return getReviewsBypdfId;
+//     } catch (err) {
+//       console.log(err);
+//     }
+//   };
 
-//   delete(id, callback) {
-//     const query = { _id: ObjectId(id) };
-//     collection.deleteOne(query, (err, result) => {
-//       if (err) return callback(err, null);
-//       callback(null, result);
-//     });
-//   }
-// }
+//   const updateReview = async (adminId, pdfId, updatedReview, updatedRating) => {
+//     try {
+//       const updatedReviews = await collection.findOneAndUpdate(
+//         {
+//           adminId: adminId,
+//           pdfId: pdfId,
+//         },
+//         { $set: { review: updatedReview, rating: updatedRating } },
+//         { returnOriginal: false }
+//       );
+//       return updatedReviews.value;
+//     } catch (err) {
+//       console.log(err);
+//     }
+//   };
 
-// module.exports = new UserDAO();
-//=================================================================
+//   const deleteReview = async (adminId, pdfId) => {
+//     try {
+//       const deleteReview = await collection.findOneAndDelete({
+//         adminId: adminId,
+//         pdfId: pdfId,
+//       });
+//       return deleteReview.value;
+//     } catch (err) {
+//       console.log(err);
+//     }
+//   };
+
+//   module.exports = {
+//     addReview,
+//     getReview,
+//     updateReview,
+//     deleteReview,
+//   };
+// });
+
+//상단 네이티브=================================================================하단 몽구스
 const mongoose = require("mongoose");
 const { get } = require("request");
 
@@ -76,6 +107,7 @@ const addReview = async (adminId, pdfId, review, rating) => {
 };
 
 const getReview = async (pdfId) => {
+  console.log(pdfId, "-==555");
   try {
     const getReviewsBypdfId = await Review.find({
       pdfId: pdfId,

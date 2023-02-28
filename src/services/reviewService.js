@@ -5,6 +5,7 @@ const addReview = async (adminId, pdfId, review, rating) => {
 };
 
 const getReview = async (pdfId) => {
+  // console.log(pdfId, "===222");
   return await reviewDao.getReview(pdfId);
 };
 

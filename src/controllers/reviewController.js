@@ -19,7 +19,7 @@ const addReview = async (req, res) => {
 const getReview = async (req, res) => {
   try {
     const pdfId = req.params.pdfId;
-    console.log(pdfId);
+    // console.log(pdfId, "================================");
     return res.status(200).json(await reviewService.getReview(pdfId));
   } catch (err) {
     res.status(err.statusCode || 400).json({ message: "getReview error" });
