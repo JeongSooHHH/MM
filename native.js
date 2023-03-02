@@ -33,11 +33,14 @@ client.connect((err) => {
 
     const db = client.db("mathMedic");
     const collection = db.collection("documents");
-
+    // 1. 아래는 데이터 모형이다.
+    // 2. 해당 데이터의 키 값을 기반으로 데이터가 들어간다.
+    // 3. search 데이터를 통해서  검색을
     const documents = {
-      _id: "1",
+      _id: "21d4",
       id: "000001",
       code: "V1022H3EBS01E0025",
+      sub_code: "",
       provider: "admin",
 
       date: {
@@ -59,20 +62,41 @@ client.connect((err) => {
       answer: "67",
       score: "",
 
+      // 전체검색은 없고 해당되는 기능별 검색.
+      // 텍스트를 통해 찾는것 화이팅
+
+      source: "기출문제", // 출처
+
       subject: {
-        depth_1: {
-          depth_1_id: "03",
-          depth_1_name: "수학1",
-        },
-        depth_2: {
-          depth_2_id: "01",
-          depth_2_name: "지수와로그",
-        },
-        depth_3: {
-          depth_3_id: "02",
-          depth_3_name: "거듭제곱근",
-        },
+        // 과목  subject1-> 수1, subject2 -> 수2
+        type: "수1",
+        units: [
+          {
+            id: "1-1",
+            name: "지수",
+          },
+          {
+            id: "1-2",
+            name: "로그",
+          },
+          {
+            id: "1-3",
+            name: "지수함수",
+          },
+          {
+            id: "1-4",
+            name: "로그함수",
+          },
+        ],
+        //  {        // 수1
+        //   unit:{        //
+        //     unit_1: "지수",
+        //     unit_2: "로그",
+        //     unit_3: "지수함수"
+        //   },
+        // },
       },
+      answer: "주관식", // 답종류 : 객관식, 주관식,
 
       count: {
         read: "10",
@@ -86,8 +110,8 @@ client.connect((err) => {
       ],
     };
 
-    // const result = await collection.insertOne(documents); // 주석제거시 insert가능
-    // console.log(result);
+    const result = await collection.insertOne(documents); // 주석제거시 insert가능
+    console.log(result);
   });
 
   // Create a document // 53번줄에 주석을 제공하면 36번줄부터 시작된 글이 다 저장
@@ -133,21 +157,21 @@ client.connect((err) => {
   });
 
   app.get("/documents/search/:query", (req, res) => {
+    // 단독데이터 호출(카테고리로 지정?)
     const query = req.params.query;
 
-    // Construct the MongoDB query based on the search query
     const searchQuery = {
       $or: [
-        // { problem: { $regex: query, $options: "i" } },
-        // { solution: { $regex: query, $options: "i" } },
-        // { search_problem: { $regex: query, $options: "i" } },
-        // { search_solution: { $regex: query, $options: "i" } },
-        // { code: { $regex: query, $options: "i" } },
+        { problem: { $regex: query, $options: "i" } },
+        { solution: { $regex: query, $options: "i" } },
+        { search_problem: { $regex: query, $options: "i" } },
+        { search_solution: { $regex: query, $options: "i" } },
+        { code: { $regex: query, $options: "i" } },
         { provider: { $regex: query, $options: "i" } },
       ],
+      $and: [{}],
     };
 
-    // Find the documents that match the search query
     collection.find(searchQuery).toArray((err, documents) => {
       if (err) {
         console.error(err);
@@ -157,6 +181,80 @@ client.connect((err) => {
       res.send(documents);
     });
   });
+
+  app.get("/questions", async (req, res) => {
+    const source = req.query.source;
+    const subject = req.query.subject;
+    const unit = req.query.unit;
+    const answer = req.query.answer;
+
+    await client.connect();
+
+    try {
+      // Build the filter object based on the query parameters
+      const filter = {};
+
+      if (source) {
+        filter.source = source;
+      }
+
+      if (subject) {
+        filter.subject = subject;
+      }
+
+      if (unit) {
+        filter.unit = unit;
+      }
+
+      if (answer) {
+        filter.answer = answer;
+      }
+
+      const conditions = Object.keys(filter).map((key) => ({
+        [key]: filter[key],
+      }));
+      const andFilter = { $and: conditions };
+
+      const questions = await collection.find(andFilter).toArray();
+
+      res.send(questions);
+    } finally {
+      await client.close();
+    }
+  });
+
+  // 검색은 조사를 질문을 어떻게 하는지(발문)에 대한 고민이 필요하고 띄어쓰기 등의 상황 또한 고려해서 인덱싱 기능을 잘 활용해야함.
+  // 카테고리나 태그는 생각보다 덜 씀. 들어오는 데이터는 일단은 목데이터를 기반으로 생각하면됨.
+  // app.get("/documents/tag/:query", (req, res) => { // and로 들어오는것을 분류해야함.
+  //   const query = req.params.query;
+
+  //   // Construct the MongoDB query based on the search query
+  //   // 태그를 통해서 데이터를 호출한다
+  //   // AND기반으로 데이터를 끌어가야함. 출처, 과목명, 단원, 정답종류  ||
+  //   const searchQuery = {
+  //     $and: if([
+  //       { problem: { $regex: query, $options: "i" } },
+  //       { solution: { $regex: query, $options: "i" } },
+  //       { search_problem: { $regex: query, $options: "i" } },
+  //       { search_solution: { $regex: query, $options: "i" } },
+  //       { code: { $regex: query, $options: "i" } },
+  //       { provider: { $regex: query, $options: "i" } },
+  //     ]),
+  //     $and:[
+  //       { }
+  //     ]
+  //   };
+
+  //   // Find the documents that match the search query
+  //   collection.find(searchQuery).toArray((err, documents) => {
+  //     if (err) {
+  //       console.error(err);
+  //       res.status(500).send("Error getting documents");
+  //       return;
+  //     }
+  //     res.send(documents);
+  //   });
+  // });
 
   // Update a document by ID
   app.put("/documents/:id", (req, res) => {
@@ -206,3 +304,5 @@ client.connect((err) => {
     console.log(`Server listening on port ${port}`);
   });
 });
+
+// http://127.0.0.1:3000/documents/search/d  << provider기반
