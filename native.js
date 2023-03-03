@@ -3,15 +3,19 @@ const express = require("express");
 const { MongoClient } = require("mongodb");
 const bodyParser = require("body-parser");
 const mongodb = require("mongodb");
+const cors = require("cors");
 const moment = require("moment");
 
 const app = express();
 const port = 3000;
+
 const mongoUri =
   "mongodb+srv://space2577:ghkdwjdtn@csm.jifgqtn.mongodb.net/test?retryWrites=true&w=majority";
+
 const client = new MongoClient(mongoUri);
 
 app.use(express.json());
+app.use(cors());
 
 client.connect((err) => {
   if (err) {
@@ -37,7 +41,7 @@ client.connect((err) => {
     // 2. 해당 데이터의 키 값을 기반으로 데이터가 들어간다.
     // 3. search 데이터를 통해서  검색을
     const documents = {
-      _id: "21d4",
+      _id: "stop", // 생성
       id: "000001",
       code: "V1022H3EBS01E0025",
       sub_code: "",
@@ -114,8 +118,10 @@ client.connect((err) => {
     console.log(result);
   });
 
+  //-------------------------------------------------------------------------------------------
+
   // Create a document // 53번줄에 주석을 제공하면 36번줄부터 시작된 글이 다 저장
-  app.post("/documents", (req, res) => {
+  /* app.post("/documents", (req, res) => {
     const document = req.body; // postman에서 어떻게 넣을지 지정해줘야함.
     collection.insertOne(document, (err, result) => {
       if (err) {
@@ -125,7 +131,9 @@ client.connect((err) => {
       }
       res.send(result.ops[0]);
     });
-  });
+  });  */ // 현재 미사용 기능
+
+  //-------------------------------------------------------------------------------------------
 
   // Get all documents
   app.get("/documents/all", (req, res) => {
@@ -138,6 +146,8 @@ client.connect((err) => {
       res.send(documents);
     });
   });
+
+  //-------------------------------------------------------------------------------------------
 
   // Get a single document by _ID
   app.get("/documents/:id", (req, res) => {
@@ -156,18 +166,21 @@ client.connect((err) => {
     });
   });
 
+  //-------------------------------------------------------------------------------------------
+
   app.get("/documents/search/:query", (req, res) => {
     // 단독데이터 호출(카테고리로 지정?)
     const query = req.params.query;
-
+    console.log(query);
+    console.log(req);
     const searchQuery = {
       $or: [
-        { problem: { $regex: query, $options: "i" } },
-        { solution: { $regex: query, $options: "i" } },
+        // { problem: { $regex: query, $options: "i" } },
+        // { solution: { $regex: query, $options: "i" } },
         { search_problem: { $regex: query, $options: "i" } },
         { search_solution: { $regex: query, $options: "i" } },
-        { code: { $regex: query, $options: "i" } },
-        { provider: { $regex: query, $options: "i" } },
+        // { code: { $regex: query, $options: "i" } },
+        // { provider: { $regex: query, $options: "i" } },
       ],
       $and: [{}],
     };
@@ -181,6 +194,8 @@ client.connect((err) => {
       res.send(documents);
     });
   });
+
+  //-------------------------------------------------------------------------------------------
 
   app.get("/questions", async (req, res) => {
     const source = req.query.source;
@@ -223,6 +238,8 @@ client.connect((err) => {
     }
   });
 
+  //-------------------------------------------------------------------------------------------
+
   // 검색은 조사를 질문을 어떻게 하는지(발문)에 대한 고민이 필요하고 띄어쓰기 등의 상황 또한 고려해서 인덱싱 기능을 잘 활용해야함.
   // 카테고리나 태그는 생각보다 덜 씀. 들어오는 데이터는 일단은 목데이터를 기반으로 생각하면됨.
   // app.get("/documents/tag/:query", (req, res) => { // and로 들어오는것을 분류해야함.
@@ -232,7 +249,7 @@ client.connect((err) => {
   //   // 태그를 통해서 데이터를 호출한다
   //   // AND기반으로 데이터를 끌어가야함. 출처, 과목명, 단원, 정답종류  ||
   //   const searchQuery = {
-  //     $and: if([
+  //     $and: ([
   //       { problem: { $regex: query, $options: "i" } },
   //       { solution: { $regex: query, $options: "i" } },
   //       { search_problem: { $regex: query, $options: "i" } },
@@ -254,7 +271,9 @@ client.connect((err) => {
   //     }
   //     res.send(documents);
   //   });
-  // });
+  // });                                                      //
+
+  //-------------------------------------------------------------------------------------------
 
   // Update a document by ID
   app.put("/documents/:id", (req, res) => {
@@ -278,6 +297,8 @@ client.connect((err) => {
       }
     );
   });
+
+  //-------------------------------------------------------------------------------------------
 
   // Delete a document by ID
   app.delete("/documents/:id", (req, res) => {
@@ -305,4 +326,31 @@ client.connect((err) => {
   });
 });
 
-// http://127.0.0.1:3000/documents/search/d  << provider기반
+// 가능한한 모든 로직은 백에서 처리 후 프론트 전송
+
+/* postman 호출 예시입니다. 
+- 테스트 편의성을 위해 서버 실행시 자동으로 데이터 생성되도록 설정 해두었습니다. (_id값 주석해제를 통해 정지가능)
+
+app.get("/documents/all", // 디비 내 모든 데이터 검색
+http://127.0.0.1:3000/documents/all   
+
+app.get("/documents/:id", // _id(고유값) 기반 검색 기능, 스키마 확정시 자동증가 시퀀스 추가 
+http://127.0.0.1:3000/documents/64005816818a59a46331166e
+
+app.get("/documents/search/:query",   << search problem/solution 기반 검색
+http://127.0.0.1:3000/documents/search/some                 
+
+app.get("/questions",
+http://127.0.0.1:3000/questions?source=기출문제&&answer=객관식   <<필터, 쿼리 중첩 검색
+    현재 데이터: (source, subject, unit, answer)  
+
+
+
+
+app.put("/documents/:id",   // 데이터 수정 기능
+http://127.0.0.1:3000/documents/64005816818a59a46331166e 
+바디값을 통해서 수정 / 수정 방법론 미정
+
+app.delete("/documents/:id"  //파일삭제, 자동증가 시퀀스 미반영 상태, 추가시 병합반영
+http://127.0.0.1:3000/documents/64005816818a59a46331166e 
+*/
