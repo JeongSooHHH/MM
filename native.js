@@ -41,7 +41,7 @@ client.connect((err) => {
     // 2. 해당 데이터의 키 값을 기반으로 데이터가 들어간다.
     // 3. search 데이터를 통해서  검색을
     const documents = {
-      _id: "stop", // 생성
+      // _id: "stop", // 생성
       id: "000001",
       code: "V1022H3EBS01E0025",
       sub_code: "",
@@ -53,16 +53,15 @@ client.connect((err) => {
       },
 
       problem:
-        "실수 $a$의 세제곱근 중 실수인 것을 $4$, $81$의 네제곱근 중 실수인 것을 $b$라 할 때, $a+b$의 최댓값을 구하시오.", // 문제 text
+        "첫글자 \\(\\frac{10}{4x}\\approx 2^{12}\\)  중간글자 \\(\\frac{10}{4x}\\approx 2^{12}\\)마지막 글자", // 문제 text
 
       solution:
-        "실수 $a$의 세제곱근 중 실수인 것이 $4$이므로 방정식 $x^{3}=a$의 근 중에서 $4$이다. therefore$ $a=64$", // 해설 text
+        "첫글자 \\(\\frac{10}{4x}\\approx 2^{12}\\)  중간글자 \\(\\frac{10}{4x}\\approx 2^{12}\\)마지막 글자", // 해설 text
       // 파싱한 문제 (latex or xml)
-      search_problem:
-        "실수 a의 세제곱근 중 실수인 것을 4, 81의 네제곱근 중 실수인 것을 b라 할 때, a+b의 최댓값을 구하시오.", // 검색Ver 문제 text
+      search_problem: "배고파", // 검색Ver 문제 text
       // 파싱한 해설 (latex or xml)
       search_solution:
-        "실수 a의 세제곱근 중 실수인 것이 4이므로 방정식 x^{3}=a의 근 중에서 44이다. therefore a=64", // 검색Ver 해설 text
+        "첫글자 \\(\\frac{10}{4x}\\approx 2^{12}\\)  중간글자 \\(\\frac{10}{4x}\\approx 2^{12}\\)마지막 글자", // 검색Ver 해설 text
       answer: "67",
       score: "",
 
@@ -166,13 +165,34 @@ client.connect((err) => {
     });
   });
 
-  //-------------------------------------------------------------------------------------------
+  // =----------------------------------------------------------
 
-  app.get("/documents/search/:query", (req, res) => {
-    // 단독데이터 호출(카테고리로 지정?)
+  // app.get("/documents/search/:query/:field", async (req, res) => {
+  //   const query = req.params.query;
+  //   const field = req.params.field;
+
+  //   const searchQuery = {
+  //     $or: [
+  //       { search_problem: { $regex: query, $options: "i" } },
+  //       { search_solution: { $regex: query, $options: "i" } },
+  //       {
+  //         [field]: { $elemMatch: { $regex: query, $options: "i" } },
+  //       },
+  //     ],
+  //   };
+
+  //   try {
+  //     const documents = await collection.find(searchQuery).toArray();
+  //     res.send(documents);
+  //   } catch (err) {
+  //     console.error(err);
+  //     res.status(500).send("Error getting documents");
+  //   }
+  // });
+
+  app.get("/documents/search/:query", async (req, res) => {
     const query = req.params.query;
-    console.log(query);
-    console.log(req);
+
     const searchQuery = {
       $or: [
         // { problem: { $regex: query, $options: "i" } },
@@ -181,18 +201,44 @@ client.connect((err) => {
         { search_solution: { $regex: query, $options: "i" } },
         // { code: { $regex: query, $options: "i" } },
         // { provider: { $regex: query, $options: "i" } },
+        {
+          $or: [
+            { "nestedField1.nestedField2": { $regex: query, $options: "i" } },
+            { "nestedField1.nestedField3": { $regex: query, $options: "i" } },
+          ],
+        },
       ],
-      $and: [{}],
     };
 
-    collection.find(searchQuery).toArray((err, documents) => {
-      if (err) {
-        console.error(err);
-        res.status(500).send("Error getting documents");
-        return;
-      }
+    try {
+      const documents = await collection.find(searchQuery).toArray();
       res.send(documents);
-    });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error getting documents");
+    }
+  });
+
+  app.get("/documents/search", async (req, res) => {
+    const query1 = req.query.query1;
+    const query2 = req.query.query2;
+    console.log(query1, "===========================");
+    const searchQuery = {
+      $or: [
+        { search_problem: { $regex: query1, $options: "i" } },
+        { search_solution: { $regex: query1, $options: "i" } },
+        { search_problem: { $regex: query2, $options: "i" } },
+        { search_solution: { $regex: query2, $options: "i" } },
+      ],
+    };
+
+    try {
+      const documents = await collection.find(searchQuery).toArray();
+      res.send(documents);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Error getting documents");
+    }
   });
 
   //-------------------------------------------------------------------------------------------
@@ -206,7 +252,6 @@ client.connect((err) => {
     await client.connect();
 
     try {
-      // Build the filter object based on the query parameters
       const filter = {};
 
       if (source) {
@@ -326,6 +371,8 @@ client.connect((err) => {
   });
 });
 
+//---------------------------------------------------------------------
+
 // 가능한한 모든 로직은 백에서 처리 후 프론트 전송
 
 /* postman 호출 예시입니다. 
@@ -338,12 +385,13 @@ app.get("/documents/:id", // _id(고유값) 기반 검색 기능, 스키마 확�
 http://127.0.0.1:3000/documents/64005816818a59a46331166e
 
 app.get("/documents/search/:query",   << search problem/solution 기반 검색
-http://127.0.0.1:3000/documents/search/some                 
+http://127.0.0.1:3000/documents/search/some
+
+|| <- 중복 검색 기반 
 
 app.get("/questions",
 http://127.0.0.1:3000/questions?source=기출문제&&answer=객관식   <<필터, 쿼리 중첩 검색
-    현재 데이터: (source, subject, unit, answer)  
-
+    기반 데이터: (source, subject, unit, answer) 
 
 
 
